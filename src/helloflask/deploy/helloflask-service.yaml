@@ -1,0 +1,17 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: helloflask-service
+  labels: 
+    run: helloflask
+    tier: web
+spec:
+  selector:
+    app: helloflask
+    tier: web
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: NodePort
+    

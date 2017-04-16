@@ -1,0 +1,254 @@
+mount remote network drive
+
+mkdir ~/mnt
+sudo mount -t cifs //192.168.2.201/netshare ~/mnt
+
+install a .deb package (not apt)
+
+sudo dpkg -i minikube_.deb
+
+download and install kubectl
+
+curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+
+chmod +x ./kubectl
+sudo cp kubectl /usr/local/bin/kubectl
+which kubectl
+
+(version installed for this testing)
+kubectl version
+Client Version: version.Info{Major:"1", Minor:"6", GitVersion:"v1.6.1", GitCommit:"b0b7a323cc5a4a2019b2e9520c21c7830b7f708e", GitTreeState:"clean", BuildDate:"2017-04-03T20:44:38Z", GoVersion:"go1.7.5", Compiler:"gc", Platform:"linux/amd64"}
+
+
+minikube
+--------
+cp minikube-linux-amd64 minikube
+chmod +x minikube
+sudo mv minikube /usr/local/bin/
+
+minikube get-k8s-versions
+minikube logs
+minikube ip
+
+start
+status
+stop
+delete < will delete VM and will need to re-init
+
+minikube start --kubernetes-version="v1.5.3" --vm-driver="virtualbox" --v=3 --alsologtostderr
+
+minikube status
+minikubeVM: Running
+localkube: Running
+
+Kubectrl examples
+=================
+
+(cmd completion)
+source <(kubectl completion bash)
+
+kubectl cluster-info
+Kubernetes master is running at https://192.168.99.100:8443
+KubeDNS is running at https://192.168.99.100:8443/api/v1/proxy/namespaces/kube-system/services/kube-dns
+kubernetes-dashboard is running at https://192.168.99.100:8443/api/v1/proxy/namespaces/kube-system/services/kubernetes-dashboard
+
+
+kubectl version
+Client Version: version.Info{Major:"1", Minor:"6", GitVersion:"v1.6.1", GitCommit:"b0b7a323cc5a4a2019b2e9520c21c7830b7f708e", GitTreeState:"clean", BuildDate:"2017-04-03T20:44:38Z", GoVersion:"go1.7.5", Compiler:"gc", Platform:"linux/amd64"}
+Server Version: version.Info{Major:"1", Minor:"5", GitVersion:"v1.5.3", GitCommit:"029c3a408176b55c30846f0faedf56aae5992e9b", GitTreeState:"clean", BuildDate:"1970-01-01T00:00:00Z", GoVersion:"go1.7", Compiler:"gc", Platform:"linux/amd64"}
+
+kubectl get nodes
+NAME       STATUS    AGE       VERSION
+minikube   Ready     3h        v1.5.3
+
+kubectl get pods --all-namespaces
+NAMESPACE     NAME                          READY     STATUS    RESTARTS   AGE
+kube-system   kube-addon-manager-minikube   1/1       Running   0          3h
+kube-system   kube-dns-v20-3jkbx            3/3       Running   0          3h
+kube-system   kubernetes-dashboard-3j6gl    1/1       Running   0          3h
+
+kubectl get rc --all-namespaces
+NAMESPACE     NAME                   DESIRED   CURRENT   READY     AGE
+kube-system   kube-dns-v20           1         1         1         3h
+kube-system   kubernetes-dashboard   1         1         1         3h
+
+
+kubectl get svc --all-namespaces -o yaml
+
+events
+======
+kubectl get events
+
+config
+======
+kubectl config view
+kubectl config current-context
+minikube
+
+Set the current context
+:todo
+
+To use minikube docker instance
+eval $(minikube docker-env)
+confirm env
+env | grep DOCK
+DOCKER_HOST=tcp://192.168.99.100:2376
+DOCKER_API_VERSION=1.23
+DOCKER_TLS_VERIFY=1
+DOCKER_CERT_PATH=/home/david/.minikube/certs
+
+RUNNING some pod and service examples
+=====================================
+
+Running an existing test application (direct from a container image - echoserver)
+---------------------------------------------------------------------------------
+kubectl run hello-minikube --image= gcr.io/google_containers/echoserver:1.4 --hostport=8000 --port=8080
+kubectl get pods --all-namespaces
+kubectl get deploy --all-namespaces
+curl $(minikube ip):8000
+(or) curl http://192.168.99.100:8000
+
+Run the dashboard
+-----------------
+minikube dashboard
+- equivalent to 
+(minikube ip):<following 80:xxxxx port>
+kubectl get services --all-namespaces
+
+
+A service for an app running in one pod (node-hello)
+-----------------------------------------------------
+use the kubectl run command to create a Deployment that manages a Pod. The Pod runs a Container.
+
+code (server.js):
+var http = require('http');
+
+var handleRequest = function(request, response) {
+  console.log('Received request for URL: ' + request.url);
+  response.writeHead(200);
+  response.end('Hello World!');
+};
+var www = http.createServer(handleRequest);
+www.listen(8050);
+
+-build an container image using the minikube docker daemon (does not pull from remote registry)
+Dockerfile:
+FROM node:6.9.2
+EXPOSE 8050
+COPY server.js .
+CMD node server.js
+
+-switch to minikube docker daemon
+eval $(minikube docker-env) 
+docker build -t node-hello:v1 .
+
+kubectl run node-hello --image node-hello:v1 --port=8050    (no hostport given)
+
+kubectl get deployments -o wide
+NAME             DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE       CONTAINER(S)     IMAGE(S)                                  SELECTOR
+hello-minikube   1         1         1            1           59m       hello-minikube   gcr.io/google_containers/echoserver:1.4   run=hello-minikube
+node-hello       1         1         1            1           2m        node-hello       node-hello:v1                             run=node-hello
+
+kubectl get deployments --all-namespaces
+NAMESPACE   NAME             DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+default     hello-minikube   1         1         1            1           1h
+default     node-hello       1         1         1            1           12m
+
+kubectl get pods --all-namespaces -o wide
+NAMESPACE     NAME                            READY     STATUS    RESTARTS   AGE       IP               NODE
+default       hello-minikube-55824521-bhlj2   1/1       Running   0          1h        172.17.0.4       minikube
+default       node-hello-2168701605-54lbq     1/1       Running   0          14m       172.17.0.5       minikube
+kube-system   kube-addon-manager-minikube     1/1       Running   0          4h        192.168.99.100   minikube
+kube-system   kube-dns-v20-3jkbx              3/3       Running   0          4h        172.17.0.2       minikube
+kube-system   kubernetes-dashboard-3j6gl      1/1       Running   0          4h        172.17.0.3       minikube
+
+
+Kube services
+=============
+A service exposes a deployment endpoint to the outside world (via a endport)
+==================================================================================
+
+kubectl expose deployment node-hello --type=LoadBalancer
+
+kubectl get services --all-namespaces
+NAMESPACE     NAME                   CLUSTER-IP   EXTERNAL-IP   PORT(S)          AGE
+default       kubernetes             10.0.0.1     <none>        443/TCP          4h
+default       node-hello             10.0.0.116   <pending>     8050:32204/TCP   1m            (due to no hostport mapping - see above run cmd)
+kube-system   kube-dns               10.0.0.10    <none>        53/UDP,53/TCP    4h
+kube-system   kubernetes-dashboard   10.0.0.38    <nodes>       80:30000/TCP     4h
+
+
+
+-access the service via the minikube endport
+minikube service [-n NAMESPACE] [--url] NAME
+minikube service --url node-hello
+http://192.168.99.100:32204
+curl http://192.168.99.100:32204
+Hello World!
+
+View logs - (stdout stderr)
+===========================
+kubectl logs hello-minikube-55824521-bhlj2
+192.168.99.1 - - [13/Apr/2017:15:03:35 +0000] "GET / HTTP/1.1" 200 397 "-" "curl/7.47.0"
+192.168.99.1 - - [13/Apr/2017:15:04:32 +0000] "GET / HTTP/1.1" 200 397 "-" "curl/7.47.0"
+192.168.99.1 - - [13/Apr/2017:15:05:32 +0000] "GET / HTTP/1.1" 200 397 "-" "curl/7.47.0"
+192.168.99.1 - - [13/Apr/2017:16:28:02 +0000] "GET / HTTP/1.1" 200 397 "-" "curl/7.47.0"
+192.168.99.1 - - [13/Apr/2017:16:31:09 +0000] "GET / HTTP/1.1" 200 397 "-" "curl/7.47.0"
+
+
+kubectl logs node-hello-2168701605-54lbq 
+Received request for URL: /
+Received request for URL: /
+Received request for URL: /
+Received request for URL: /
+Received request for URL: /
+
+
+Removing service and deployments
+================================
+kubectl delete service node-hello
+kubectl delete deployment node-hello
+
+
+Creating a service for an application running in two pods
+=========================================================
+kubectl run hello-world --replicas=2 --labels="run=load-balancer-example" --image=gcr.io/google-samples/node-hello:1.0  --port=8080
+
+kubectl get deployments hello-world
+NAME          DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+hello-world   2         2         2            2           51m
+
+
+kubectl get pods --all-namespaces
+NAMESPACE     NAME                            READY     STATUS    RESTARTS   AGE
+default       hello-minikube-55824521-bhlj2   1/1       Running   0          2h
+default       hello-world-2895499144-03mfx    1/1       Running   0          58m
+default       hello-world-2895499144-cjs8b    1/1       Running   0          58m
+default       node-hello-2168701605-54lbq     1/1       Running   0          1h
+kube-system   kube-addon-manager-minikube     1/1       Running   0          6h
+kube-system   kube-dns-v20-3jkbx              3/3       Running   0          6h
+kube-system   kubernetes-dashboard-3j6gl      1/1       Running   0          6h
+
+kubectl describe deploy --all-namespaces
+Name:			hello-world
+Namespace:		default  
+...
+
+kubectl expose deployment hello-world --type=NodePort --name=example-service
+kubectl describe service example-service
+->NodePort=32019
+curl http://192.168.99.100:32019
+
+kubectl get services --selector="run=load-balancer-example" --all-namespaces -o wide
+NAMESPACE   NAME              CLUSTER-IP   EXTERNAL-IP   PORT(S)          AGE       SELECTOR
+default     example-service   10.0.0.174   <nodes>       8080:32019/TCP   17m       run=load-balancer-example
+
+kubectl get pods --selector="run=load-balancer-example" --output=wide
+NAME                           READY     STATUS    RESTARTS   AGE       IP           NODE
+hello-world-2895499144-03mfx   1/1       Running   0          1h        172.17.0.6   minikube
+hello-world-2895499144-cjs8b   1/1       Running   0          1h        172.17.0.7   minikube
+
+
+
+
+

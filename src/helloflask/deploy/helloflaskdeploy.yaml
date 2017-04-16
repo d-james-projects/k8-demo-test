@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: helloflask-replicationctrl
+spec:
+  replicas: 3
+  selector:
+    app: helloflask
+  template:
+    metadata:
+      name: helloflask
+      labels:
+        app: helloflask
+        tier: web
+    spec:
+      containers:
+      - name: helloflask
+        image: devel040417/helloflask:1.0
+        ports:
+        - containerPort: 5000
+
+
