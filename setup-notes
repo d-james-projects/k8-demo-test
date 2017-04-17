@@ -102,11 +102,14 @@ RUNNING some pod and service examples
 
 Running an existing test application (direct from a container image - echoserver)
 ---------------------------------------------------------------------------------
-kubectl run hello-minikube --image= gcr.io/google_containers/echoserver:1.4 --hostport=8000 --port=8080
+kubectl run hello-minikube --image=gcr.io/google_containers/echoserver:1.4 --hostport=10000 --port=8080
 kubectl get pods --all-namespaces
 kubectl get deploy --all-namespaces
-curl $(minikube ip):8000
-(or) curl http://192.168.99.100:8000
+curl $(minikube ip):10000
+(or) curl http://192.168.99.100:10000
+kubectl run hello-minikube --image=gcr.io/google_containers/echoserver:1.4 --port=8080
+kubectl expose deployment hello-minikube --type=NodePort --name=echoserver-service
+
 
 Run the dashboard
 -----------------
@@ -249,6 +252,40 @@ hello-world-2895499144-03mfx   1/1       Running   0          1h        172.17.0
 hello-world-2895499144-cjs8b   1/1       Running   0          1h        172.17.0.7   minikube
 
 
+Pull from a private registry
+============================
+kubectl create secret docker-registry regsecret --docker-username=dnjameshome --docker-password=xxxxx --docker-email=d_james_no_trust@outlook.com
+
+kubectl get secret regsecret --output=yaml
+apiVersion: v1
+data:
+  .dockercfg: eyJodHRwczovL2luZGV4LmRvY2tlci5pby92MS8iOnsidXNlcm5hbWUiOiJkbmphbWVzaG9tZSIsInBhc3N3b3JkIjoiZGF2aWQxMjMiLCJlbWFpbCI6ImRfamFtZXNfbm9fdHJ1c3RAb3V0bG9vay5jb20iLCJhdXRoIjoiWkc1cVlXMWxjMmh2YldVNlpHRjJhV1F4TWpNPSJ9fQ==
+kind: Secret
+metadata:
+  creationTimestamp: 2017-04-17T16:52:56Z
+  name: regsecret
+  namespace: default
+  resourceVersion: "45204"
+  selfLink: /api/v1/namespaces/default/secrets/regsecret
+  uid: 4e12d3b9-238e-11e7-bfcb-080027b1e875
+type: kubernetes.io/dockercfg
+
+test yaml file
+--------------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: private-reg
+  labels:
+    reg: secrets
+spec:
+  containers:
+    - name: my-echoserver
+      image: docker.io/dnjameshome/my-echoserver:1.0
+      ports:
+      - containerPort: 8080
+  imagePullSecrets:
+    - name: regsecret
 
 
 
