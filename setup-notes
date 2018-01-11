@@ -254,12 +254,13 @@ hello-world-2895499144-cjs8b   1/1       Running   0          1h        172.17.0
 
 Pull from a private registry
 ============================
-kubectl create secret docker-registry regsecret --docker-username=dnjameshome --docker-password=xxxxx --docker-email=d_james_no_trust@outlook.com
+kubectl create secret docker-registry regsecret --docker-username=dnjameshome --docker-password=xxxxx --docker-email=xxxxxno_trust@outlook.com
 
 kubectl get secret regsecret --output=yaml
 apiVersion: v1
 data:
-  .dockercfg: eyJodHRwczovL2luZGV4LmRvY2tlci5pby92MS8iOnsidXNlcm5hbWUiOiJkbmphbWVzaG9tZSIsInBhc3N3b3JkIjoiZGF2aWQxMjMiLCJlbWFpbCI6ImRfamFtZXNfbm9fdHJ1c3RAb3V0bG9vay5jb20iLCJhdXRoIjoiWkc1cVlXMWxjMmh2YldVNlpHRjJhV1F4TWpNPSJ9fQ==
+  .dockercfg: xxxxxx
+  
 kind: Secret
 metadata:
   creationTimestamp: 2017-04-17T16:52:56Z
