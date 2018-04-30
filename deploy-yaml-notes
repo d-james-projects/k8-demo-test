@@ -48,11 +48,11 @@ Push image to docker hub
 ------------------------
 rename docker tags/image
 
-docker tag helloflask:latest devel040417/helloflask:1.0
+docker tag helloflask:latest dev/helloflask:1.0
 docker rmi helloflask:latest
 
-docker login -u="devel040417" -p="david123"
-docker push devel040417/helloflask:1.0
+docker login -u="user" -p="pass"
+docker push dev/helloflask:1.0
 
 
 Deployments and Replica sets are new in v1.6
@@ -83,7 +83,7 @@ spec:
     spec:
       containers:
       - name: helloflask
-        image: devel040417/helloflask:1.0
+        image: dev/helloflask:1.0
         ports:
         - containerPort: 5000
 
